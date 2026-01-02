@@ -1,0 +1,5 @@
+{
+  "name": "TailorMaster",
+  "description": "A simple, mobile-first tailor management app for traditional shops. Features order tracking, measurements in Gujarati, and WhatsApp invoicing.",
+  "requestFramePermissions": []
+}
