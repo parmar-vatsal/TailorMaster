@@ -3,12 +3,14 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { Design } from '../types';
 import { Plus, Trash2, Image as ImageIcon, Loader2, X, Filter } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 export const DesignCatalog: React.FC = () => {
     const [designs, setDesigns] = useState<Design[]>([]);
     const [loading, setLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [uploadingState, setUploadingState] = useState(false);
+    const { showToast } = useToast();
 
     // Form
     const [file, setFile] = useState<File | null>(null);
@@ -53,8 +55,9 @@ export const DesignCatalog: React.FC = () => {
             setFile(null);
             setPreview('');
             setTitle('');
+            showToast('Design uploaded successfully', 'success');
         } catch (err: any) {
-            alert('Upload failed: ' + err.message);
+            showToast('Upload failed: ' + err.message, 'error');
         } finally {
             setUploadingState(false);
         }
@@ -65,8 +68,9 @@ export const DesignCatalog: React.FC = () => {
         try {
             await db.designs.delete(id, url);
             setDesigns(prev => prev.filter(d => d.id !== id));
+            showToast('Design deleted', 'info');
         } catch (e) {
-            alert('Delete failed');
+            showToast('Delete failed', 'error');
         }
     };
 

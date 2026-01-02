@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { Order, OrderStatus, Customer } from '../types';
 import { STATUS_COLORS } from '../constants';
 import { Search, Phone, ChevronDown, Calendar, User, Trash2, Loader2, RefreshCw, Filter } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface OrderListProps {
   onSelectOrder: (orderId: string) => void;
@@ -17,6 +18,7 @@ export const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionId, setActionId] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const fetchData = async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -24,8 +26,10 @@ export const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
       const [o, c] = await Promise.all([db.orders.getAll(), db.customers.getAll()]);
       setOrders(o);
       setCustomers(c);
+      if (isRefresh) showToast("Orders updated", 'success');
     } catch (err) {
       console.error("Fetch failed", err);
+      showToast("Failed to load data", 'error');
     } finally {
       setLoading(false);
       if (isRefresh) setRefreshing(false);
@@ -80,8 +84,9 @@ export const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
     try {
         await db.orders.save(updatedOrder);
         setOrders(prev => prev.map(o => o.id === order.id ? updatedOrder : o));
+        showToast(`Order marked as ${newStatus}`, 'success');
     } catch (err) {
-        alert("Update failed. Check your internet.");
+        showToast("Update failed. Check your internet.", 'error');
     } finally {
         setActionId(null);
     }
@@ -97,11 +102,12 @@ export const OrderList: React.FC<OrderListProps> = ({ onSelectOrder }) => {
             const result = await db.orders.delete(orderId);
             if (!result.error) {
                 setOrders(prev => prev.filter(o => o.id !== orderId));
+                showToast("Order deleted successfully", 'info');
             } else {
-                alert("Database error. Please try again.");
+                showToast("Database error during delete.", 'error');
             }
         } catch (err) {
-            alert("Unexpected error.");
+            showToast("Unexpected error.", 'error');
         } finally {
             setActionId(null);
         }

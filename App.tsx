@@ -15,8 +15,9 @@ import { LandingPage } from './components/LandingPage';
 import { AuthFlow } from './components/AuthFlow';
 import { ExpenseTracker } from './components/ExpenseTracker';
 import { DesignCatalog } from './components/DesignCatalog';
+import { ToastProvider } from './components/ToastContext';
 
-const App: React.FC = () => {
+const AppContent: React.FC = () => {
   const [view, setView] = useState<ViewState>('LANDING');
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [config, setConfig] = useState<AppConfig>({ shopName: '', pin: '' });
@@ -129,6 +130,14 @@ const App: React.FC = () => {
   };
 
   return <>{renderContent()}</>;
+};
+
+const App: React.FC = () => {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
 };
 
 export default App;

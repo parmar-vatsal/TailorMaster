@@ -4,6 +4,7 @@ import { db } from '../services/db';
 import { Customer, Measurement, Order, GarmentType } from '../types';
 import { Search, Phone, User, Ruler, ClipboardList, ChevronRight, X, Trash2, Loader2, MapPin } from 'lucide-react';
 import { STATUS_COLORS } from '../constants';
+import { useToast } from './ToastContext';
 
 export const CustomerList: React.FC = () => {
     const [search, setSearch] = useState('');
@@ -13,6 +14,7 @@ export const CustomerList: React.FC = () => {
     const [allMeasurements, setAllMeasurements] = useState<Measurement[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
+    const { showToast } = useToast();
 
     const refreshData = async () => {
         try {
@@ -22,6 +24,7 @@ export const CustomerList: React.FC = () => {
             setAllMeasurements(m);
         } catch (err) {
             console.error(err);
+            showToast("Failed to load customer list", 'error');
         } finally {
             setLoading(false);
         }
@@ -53,14 +56,15 @@ export const CustomerList: React.FC = () => {
             try {
                 const result = await db.customers.delete(customerId);
                 if (result.error) {
-                    alert(`Error deleting customer: ${result.error.message}`);
+                    showToast(`Error deleting customer: ${result.error.message}`, 'error');
                 } else {
                     setCustomers(prev => prev.filter(c => c.id !== customerId));
                     setSelectedCustomer(null);
+                    showToast('Customer deleted successfully', 'success');
                     await refreshData();
                 }
             } catch (err) {
-                alert("An error occurred during deletion.");
+                showToast("An error occurred during deletion.", 'error');
             } finally {
                 setIsDeleting(false);
             }

@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { AppConfig } from '../types';
 import { Save, Store, Lock, Monitor, Upload, Image as ImageIcon } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 export const Settings: React.FC = () => {
     const [config, setConfig] = useState<AppConfig>({ shopName: '', pin: '' });
-    const [msg, setMsg] = useState('');
     const [loading, setLoading] = useState(true);
+    const { showToast } = useToast();
 
     useEffect(() => {
         db.config.get().then(data => {
@@ -16,17 +17,20 @@ export const Settings: React.FC = () => {
         });
     }, []);
 
-    const handleSave = () => {
-        db.config.set(config);
-        setMsg('Settings saved successfully');
-        setTimeout(() => setMsg(''), 3000);
+    const handleSave = async () => {
+        try {
+            await db.config.set(config);
+            showToast('Settings saved successfully', 'success');
+        } catch (e) {
+            showToast('Failed to save settings', 'error');
+        }
     };
 
     const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             if (file.size > 500 * 1024) {
-                alert("File too large. Max 500KB");
+                showToast("File too large. Max 500KB", 'error');
                 return;
             }
             const reader = new FileReader();
@@ -116,12 +120,6 @@ export const Settings: React.FC = () => {
             >
                 <Save size={24} /> Save Changes
             </button>
-            
-            {msg && (
-                <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-6 py-4 rounded-2xl text-center font-bold animate-bounce shadow-sm flex items-center justify-center gap-2">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full"></div> {msg}
-                </div>
-            )}
 
             <div className="text-center pt-8 pb-4 text-slate-300">
                 <div className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest font-bold opacity-60">

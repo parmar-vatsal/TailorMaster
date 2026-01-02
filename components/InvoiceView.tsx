@@ -1,9 +1,11 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Order, Customer, Measurement, AppConfig, GarmentType } from '../types';
 import { db } from '../services/db';
 import { ArrowLeft, Printer, Scissors, AlertTriangle, Ruler, FileText, Loader2, Share2, Download, CheckCircle2, Phone, MapPin } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import { jsPDF } from 'jspdf';
+import { useToast } from './ToastContext';
 
 interface InvoiceViewProps {
   orderId: string;
@@ -18,9 +20,9 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [generating, setGenerating] = useState(false);
-  const [statusMsg, setStatusMsg] = useState('');
   const [showInstruction, setShowInstruction] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const loadData = async () => {
@@ -61,21 +63,18 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
   const handleWhatsAppShare = async () => {
     if (!invoiceRef.current || !customer || !order) return;
     setGenerating(true);
+    showToast('Starting PDF generation...', 'info');
 
     try {
         // --- PREPARE DATE-BASED PATH ---
-        // Format: YYYY-MM-DD
-        // We use the order's creation date to ensure consistency
         const orderDate = new Date(order.createdAt);
         const dateStr = orderDate.toISOString().split('T')[0];
 
         // --- 1. CHECK EXISTING INVOICE IN STORAGE ---
-        // Path logic: YYYY-MM-DD/orderId.pdf
-        setStatusMsg('Checking Invoice...');
         const existingPath = await db.storage.findExistingInvoice(dateStr, order.id);
 
         if (existingPath) {
-            setStatusMsg('Fetching Invoice...');
+            showToast('Invoice found, opening WhatsApp...', 'success');
             const publicUrl = db.storage.getPublicUrl(existingPath);
             
             // Open WhatsApp with Existing Link
@@ -91,57 +90,43 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
 
             const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
             
-            setStatusMsg('Opening WhatsApp...');
             setTimeout(() => {
                 window.open(waUrl, '_blank');
                 setGenerating(false);
-                setStatusMsg('');
             }, 800);
             return;
         }
 
         // --- 2. GENERATE NEW IF NOT FOUND ---
-        setStatusMsg('Generating PDF...');
         await document.fonts.ready;
-        // Small delay to ensure rendering is complete
         await new Promise(resolve => setTimeout(resolve, 300));
 
         const element = invoiceRef.current;
         
         // Capture High Quality Image
         const canvas = await html2canvas(element, {
-            scale: 3, // High scale for crisp text
+            scale: 3, 
             useCORS: true, 
             allowTaint: true,
             backgroundColor: '#ffffff',
             logging: false,
-            // CRITICAL: Set a fixed large window width to simulate desktop view.
             windowWidth: 1200, 
-            // Fix scroll position issues to prevent top cropping
             scrollY: -window.scrollY,
             onclone: (clonedDoc) => {
                 const clonedElement = clonedDoc.getElementById('invoice-card-content');
                 if (clonedElement) {
-                    // Lock width to standard A4 pixel width (approx 794px at 96dpi)
                     const fixedWidth = '794px';
-                    
                     clonedElement.style.width = fixedWidth;
                     clonedElement.style.minWidth = fixedWidth;
                     clonedElement.style.maxWidth = fixedWidth;
-                    
-                    // Reset container constraints to fit content naturally
                     clonedElement.style.height = 'auto'; 
                     clonedElement.style.minHeight = '0'; 
-                    
                     clonedElement.style.margin = '0';
                     clonedElement.style.padding = '0';
                     clonedElement.style.border = 'none';
                     clonedElement.style.boxShadow = 'none';
                     clonedElement.style.overflow = 'visible';
                     clonedElement.style.position = 'relative';
-                    
-                    // Fix typography rendering for capture
-                    // Ensure no letter-spacing or font-variant overrides are applied here
                     (clonedElement.style as any).webkitFontSmoothing = 'antialiased';
                 }
             }
@@ -151,13 +136,9 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
         const imgData = canvas.toDataURL('image/jpeg', 0.95);
         const imgWidth = canvas.width;
         const imgHeight = canvas.height;
-        
-        // Use A4 width (210mm) as the standard anchor for width
         const pdfWidth = 210; 
-        // Calculate height based on image aspect ratio to prevent cropping or stretching (Natural Ratio)
         const pdfHeight = (imgHeight * pdfWidth) / imgWidth;
 
-        // Create PDF with exact dimensions of the image
         const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
@@ -172,15 +153,14 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
         const pdfBlob = pdf.output('blob');
 
         // 3. Upload to Supabase Storage
-        // Use date-based path: YYYY-MM-DD/orderId.pdf
-        setStatusMsg('Uploading...');
         const path = `${dateStr}/${order.id}.pdf`;
         
         const { error: uploadError } = await db.storage.uploadInvoice(pdfBlob, path);
         
         // --- ERROR HANDLING & FALLBACK ---
         if (uploadError) {
-            console.warn("Upload failed (Likely RLS Policy), falling back to manual attachment.", uploadError);
+            console.warn("Upload failed, falling back.", uploadError);
+            showToast('Cloud upload failed. Downloading file instead.', 'info');
             
             // A) Download the file immediately
             pdf.save(fileName);
@@ -198,18 +178,16 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
 
             // C) Show Instruction Overlay
             setShowInstruction(true);
-            setStatusMsg('Opening WhatsApp...');
             
             setTimeout(() => {
                 window.open(waUrl, '_blank');
                 setGenerating(false);
-                setStatusMsg('');
                 setTimeout(() => setShowInstruction(false), 15000);
             }, 1000);
             return;
         }
 
-        // 4. Get Public Link (No need to update order DB)
+        // 4. Get Public Link
         const publicUrl = db.storage.getPublicUrl(path);
 
         // 5. Open WhatsApp with Link
@@ -225,18 +203,16 @@ export const InvoiceView: React.FC<InvoiceViewProps> = ({ orderId, onBack }) => 
 
         const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`;
         
-        setStatusMsg('Opening WhatsApp...');
+        showToast('PDF Generated! Opening WhatsApp...', 'success');
         setTimeout(() => {
             window.open(waUrl, '_blank');
             setGenerating(false);
-            setStatusMsg('');
         }, 800);
 
     } catch (e: any) {
         console.error("Share failed", e);
-        alert(`Error: ${e.message}`);
+        showToast(`Error: ${e.message}`, 'error');
         setGenerating(false);
-        setStatusMsg('');
     }
   };
 

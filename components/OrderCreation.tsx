@@ -4,6 +4,7 @@ import { Customer, GarmentType, Measurement, Order, OrderStatus } from '../types
 import { db } from '../services/db';
 import { GUJARATI_LABELS } from '../constants';
 import { Search, UserPlus, Save, ArrowRight, ArrowLeft, Check, Loader, ShoppingBag, Ruler, FileText, User } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 interface OrderCreationProps {
   onCancel: () => void;
@@ -14,6 +15,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [currentTab, setCurrentTab] = useState<GarmentType>(GarmentType.SHIRT);
+  const { showToast } = useToast();
   
   const [draftMeasurements, setDraftMeasurements] = useState<Record<GarmentType, Record<string, string>>>({
       [GarmentType.SHIRT]: {},
@@ -32,7 +34,6 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
   const [isNewCustomer, setIsNewCustomer] = useState(false);
   const [newCustomerName, setNewCustomerName] = useState('');
   const [newCustomerAddress, setNewCustomerAddress] = useState('');
-  const [customerSaveError, setCustomerSaveError] = useState('');
 
   useEffect(() => {
     const loadMeasurements = async () => {
@@ -77,9 +78,11 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
       if (found) {
         setCustomer(found);
         setIsNewCustomer(false);
+        showToast(`Customer Found: ${found.name}`, 'success');
       } else {
         setCustomer(null);
         setIsNewCustomer(true);
+        showToast('New customer detected', 'info');
       }
     } else {
         setCustomer(null);
@@ -89,7 +92,6 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
 
   const handleSaveCustomer = async () => {
     if (mobileSearch.length !== 10 || !newCustomerName.trim()) return;
-    setCustomerSaveError('');
     
     const newC: Customer = {
       id: Date.now().toString(),
@@ -103,8 +105,9 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
         await db.customers.save(newC);
         setCustomer(newC);
         setIsNewCustomer(false);
+        showToast('Customer saved successfully!', 'success');
     } catch (e: any) {
-        setCustomerSaveError('Could not save customer. Try again.');
+        showToast('Could not save customer. Try again.', 'error');
         console.error(e);
     }
   };
@@ -129,7 +132,7 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
   const handleSaveOrder = async () => {
     if (!customer) return;
     if (selectedItems.length === 0) {
-        alert("Please select at least one item to order.");
+        showToast("Please select at least one item to order.", 'error');
         return;
     }
     setIsSaving(true);
@@ -170,10 +173,11 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
         };
         await db.orders.save(newOrder);
 
+        showToast('Order created successfully!', 'success');
         onSuccess(newOrder.id);
     } catch (error) {
         console.error("Failed to save order", error);
-        alert("Failed to save order. Please check your connection.");
+        showToast("Failed to save order. Please check your connection.", 'error');
         setIsSaving(false);
     }
   };
@@ -297,8 +301,6 @@ export const OrderCreation: React.FC<OrderCreationProps> = ({ onCancel, onSucces
                                     </div>
                                 </div>
                                 
-                                {customerSaveError && <p className="text-red-500 text-sm font-bold text-center bg-red-50 py-2 rounded-lg">{customerSaveError}</p>}
-
                                 <button
                                     onClick={handleSaveCustomer}
                                     disabled={!newCustomerName}
