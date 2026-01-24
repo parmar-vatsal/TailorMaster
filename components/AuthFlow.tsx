@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../services/db';
 import { ArrowLeft, User, Lock, Store, Phone, Eye, EyeOff, Upload, Image as ImageIcon, Loader2, Mail, Check, X } from 'lucide-react';
+import { useToast } from './ToastContext';
 
 import { useNavigate } from 'react-router-dom';
 
@@ -11,6 +12,7 @@ interface AuthFlowProps {
 
 export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
 
     const onBack = () => navigate('/');
     const onSwitchMode = () => navigate(mode === 'LOGIN' ? '/register' : '/login');
@@ -91,8 +93,12 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
 
                 if (error) {
                     setError(error.message);
+                    showToast(error.message, 'error');
+                } else if (data.session) {
+                    showToast('Registration successful! Welcome.', 'success');
+                    onSuccess();
                 } else {
-                    alert('Registration successful! If you have "Email Confirmation" enabled, please check your email.');
+                    showToast('Registration successful! Please check your email to confirm.', 'info');
                     onSuccess();
                 }
             } else {
@@ -109,13 +115,17 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
 
                 if (error) {
                     setError(error.message);
+                    showToast(error.message, 'error');
                 } else {
+                    showToast('Welcome back!', 'success');
                     onSuccess();
                 }
             }
 
         } catch (err: unknown) {
-            setError((err as Error).message || 'An error occurred');
+            const msg = (err as Error).message || 'An error occurred';
+            setError(msg);
+            showToast(msg, 'error');
         } finally {
             setLoading(false);
         }
