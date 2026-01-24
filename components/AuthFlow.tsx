@@ -92,7 +92,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                 if (error) {
                     setError(error.message);
                 } else {
-                    alert('Registration successful! Please check your email to confirm your account.');
+                    alert('Registration successful! If you have "Email Confirmation" enabled, please check your email.');
                     onSuccess();
                 }
             } else {
@@ -224,8 +224,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                     {mode === 'REGISTER' && (
                         <div className="space-y-1.5">
                             <div className="flex justify-between">
-                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Email Address</label>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide bg-slate-100 px-2 rounded-full">Optional</span>
+                                <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Email Address <span className="text-red-500">*</span></label>
                             </div>
                             <div className="relative">
                                 <input
