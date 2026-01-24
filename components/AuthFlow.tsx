@@ -26,6 +26,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
         pin: '',
         logo: ''
     });
+    const [checkEmail, setCheckEmail] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -98,8 +99,8 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                     showToast('Registration successful! Welcome.', 'success');
                     onSuccess();
                 } else {
-                    showToast('Registration successful! Please check your email to confirm.', 'info');
-                    onSuccess();
+                    // Email confirmation required
+                    setCheckEmail(true);
                 }
             } else {
                 // LOGIN Mode
@@ -139,6 +140,28 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
             {label}
         </div>
     );
+
+    if (checkEmail) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+                <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl border border-white/50 overflow-hidden animate-fade-in p-8 text-center">
+                    <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Mail size={40} className="text-indigo-600" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Check your email</h2>
+                    <p className="text-slate-500 mb-8 max-w-xs mx-auto">
+                        We've sent a confirmation link to <span className="font-bold text-slate-900">{formData.email}</span>. Please click the link to verify your account.
+                    </p>
+                    <button
+                        onClick={() => navigate('/login')}
+                        className="w-full bg-white border-2 border-slate-200 text-slate-700 font-bold py-4 rounded-xl hover:bg-slate-50 transition-colors"
+                    >
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
