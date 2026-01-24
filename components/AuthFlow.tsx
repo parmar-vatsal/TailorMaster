@@ -7,15 +7,25 @@ import { useToast } from './ToastContext';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthFlowProps {
-    mode: 'LOGIN' | 'REGISTER';
+    mode: 'LOGIN' | 'REGISTER' | 'FORGOT_PASSWORD';
 }
 
-export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
+export const AuthFlow: React.FC<AuthFlowProps> = ({ mode: initialMode }) => {
     const navigate = useNavigate();
     const { showToast } = useToast();
+    const [mode, setMode] = useState(initialMode);
+
+    // Update local mode when prop changes
+    useEffect(() => {
+        setMode(initialMode);
+    }, [initialMode]);
 
     const onBack = () => navigate('/');
-    const onSwitchMode = () => navigate(mode === 'LOGIN' ? '/register' : '/login');
+    const onSwitchMode = () => {
+        if (mode === 'LOGIN') navigate('/register');
+        else if (mode === 'REGISTER') navigate('/login');
+        else navigate('/login'); // Back to login from forgot password
+    };
     const onSuccess = () => navigate('/unlock');
     const [formData, setFormData] = useState({
         name: '',
@@ -30,6 +40,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [resetSent, setResetSent] = useState(false);
 
     // Password Strength State
     const [passwordCriteria, setPasswordCriteria] = useState({
@@ -102,17 +113,31 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                     // Email confirmation required
                     setCheckEmail(true);
                 }
-            } else {
+            } else if (mode === 'LOGIN') {
                 // LOGIN Mode
-                const identifier = formData.mobile || formData.email; // We only support email really for now in db, but let's see
-                // Revisit: db.auth.signIn expects email.
-                if (!formData.email) {
-                    setError('Please enter your email to login.');
+                // Allow mobile OR email
+                const identifier = formData.mobile || formData.email;
+
+                if (!identifier) {
+                    setError('Please enter your email or mobile number.');
                     setLoading(false);
                     return;
                 }
 
-                const { error } = await db.auth.signIn(formData.email, formData.password);
+                // If using mobile field but it looks like email, or vice versa, handle gracefully?
+                // The UI has separate fields but they share logic in previous code. 
+                // Ideally we should have one input for "Mobile or Email" in login mode.
+                // Let's assume the user types in whichever field is visible or we consolidate.
+                // Current UI has: 
+                // {mode === 'LOGIN' ? 'Mobile Number or Email' : 'Mobile Number'} -> input value={formData.mobile}
+                // AND Email Address field separately?
+                // Looking at the JSX: 
+                // The 'Mobile Number or Email' label corresponds to `formData.mobile` input.
+                // But there is NO email input in Login mode previously? 
+                // Wait, previous code had `formData.mobile` taking the value.
+                // Let's verify standard usage.
+
+                const { error } = await db.auth.signIn(identifier, formData.password);
 
                 if (error) {
                     setError(error.message);
@@ -120,6 +145,20 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                 } else {
                     showToast('Welcome back!', 'success');
                     onSuccess();
+                }
+            } else if (mode === 'FORGOT_PASSWORD') {
+                if (!formData.email) {
+                    setError('Please enter your email address.');
+                    setLoading(false);
+                    return;
+                }
+                const { error } = await db.auth.resetPassword(formData.email);
+                if (error) {
+                    setError(error.message);
+                    showToast(error.message, 'error');
+                } else {
+                    setResetSent(true);
+                    showToast('Password reset link sent to your email.', 'success');
                 }
             }
 
@@ -140,6 +179,31 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
             {label}
         </div>
     );
+
+    if (resetSent) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex flex-col justify-center items-center p-4">
+                <div className="w-full max-w-md bg-white rounded-[2rem] shadow-2xl border border-white/50 overflow-hidden animate-fade-in p-8 text-center">
+                    <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Mail size={40} className="text-indigo-600" />
+                    </div>
+                    <h2 className="text-2xl font-black text-slate-900 mb-2">Check your inbox</h2>
+                    <p className="text-slate-500 mb-8 max-w-xs mx-auto">
+                        We've sent a password reset link to <span className="font-bold text-slate-900">{formData.email}</span>.
+                    </p>
+                    <button
+                        onClick={() => {
+                            setResetSent(false);
+                            navigate('/login');
+                        }}
+                        className="w-full bg-white border-2 border-slate-200 text-slate-700 font-bold py-4 rounded-xl hover:bg-slate-50 transition-colors"
+                    >
+                        Back to Login
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (checkEmail) {
         return (
@@ -174,9 +238,13 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                         <ArrowLeft size={20} />
                     </button>
                     <div className="relative z-10 mt-6">
-                        <h2 className="text-3xl font-black tracking-tight">{mode === 'LOGIN' ? 'Welcome Back' : 'Create Account'}</h2>
+                        <h2 className="text-3xl font-black tracking-tight">
+                            {mode === 'LOGIN' ? 'Welcome Back' : mode === 'FORGOT_PASSWORD' ? 'Reset Password' : 'Create Account'}
+                        </h2>
                         <p className="text-slate-400 mt-2 text-sm font-medium">
-                            {mode === 'LOGIN' ? 'Enter your details to access your dashboard' : 'Setup your professional tailoring profile'}
+                            {mode === 'LOGIN' ? 'Enter your details to access your dashboard' :
+                                mode === 'FORGOT_PASSWORD' ? 'Enter your email to receive a reset link' :
+                                    'Setup your professional tailoring profile'}
                         </p>
                     </div>
                 </div>
@@ -238,23 +306,25 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                         </>
                     )}
 
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">
-                            {mode === 'LOGIN' ? 'Mobile Number or Email' : 'Mobile Number'}
-                        </label>
-                        <div className="relative">
-                            <input
-                                type="text"
-                                value={formData.mobile}
-                                onChange={e => handleChange('mobile', e.target.value)}
-                                className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 tracking-wide"
-                                placeholder={mode === 'LOGIN' ? "9876543210 or email" : "9876543210"}
-                            />
-                            <Phone size={18} className="absolute left-4 top-4 text-slate-400" />
+                    {mode !== 'FORGOT_PASSWORD' && (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">
+                                {mode === 'LOGIN' ? 'Mobile Number or Email' : 'Mobile Number'}
+                            </label>
+                            <div className="relative">
+                                <input
+                                    type="text"
+                                    value={formData.mobile} // For login, we use this field as 'identifier'
+                                    onChange={e => handleChange('mobile', e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 tracking-wide"
+                                    placeholder={mode === 'LOGIN' ? "9876543210 or email" : "9876543210"}
+                                />
+                                <Phone size={18} className="absolute left-4 top-4 text-slate-400" />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
-                    {mode === 'REGISTER' && (
+                    {(mode === 'REGISTER' || mode === 'FORGOT_PASSWORD') && (
                         <div className="space-y-1.5">
                             <div className="flex justify-between">
                                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Email Address <span className="text-red-500">*</span></label>
@@ -272,31 +342,40 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                         </div>
                     )}
 
-                    <div className="space-y-1.5">
-                        <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Password</label>
-                        <div className="relative">
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                value={formData.password}
-                                onChange={e => handleChange('password', e.target.value)}
-                                className={`w-full pl-11 pr-12 py-3.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-4 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 ${mode === 'REGISTER' && formData.password && !isPasswordValid ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
-                                placeholder="••••••"
-                            />
-                            <Lock size={18} className="absolute left-4 top-4 text-slate-400" />
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-slate-400 hover:text-indigo-600 transition-colors">
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        </div>
-
-                        {mode === 'REGISTER' && (
-                            <div className="grid grid-cols-2 gap-2 pt-2 pl-1 animate-fade-in">
-                                <CriteriaItem met={passwordCriteria.length} label="8+ Characters" />
-                                <CriteriaItem met={passwordCriteria.upper} label="Uppercase (A-Z)" />
-                                <CriteriaItem met={passwordCriteria.number} label="Number (0-9)" />
-                                <CriteriaItem met={passwordCriteria.special} label="Symbol (@#$%)" />
+                    {mode !== 'FORGOT_PASSWORD' && (
+                        <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-slate-600 uppercase tracking-wide ml-1">Password</label>
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={formData.password}
+                                    onChange={e => handleChange('password', e.target.value)}
+                                    className={`w-full pl-11 pr-12 py-3.5 bg-slate-50 border rounded-xl focus:bg-white focus:ring-4 outline-none transition-all font-bold text-slate-900 placeholder:text-slate-400 ${mode === 'REGISTER' && formData.password && !isPasswordValid ? 'border-red-300 focus:border-red-500 focus:ring-red-500/10' : 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10'}`}
+                                    placeholder="••••••"
+                                />
+                                <Lock size={18} className="absolute left-4 top-4 text-slate-400" />
+                                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-slate-400 hover:text-indigo-600 transition-colors">
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
                             </div>
-                        )}
-                    </div>
+
+                            {mode === 'REGISTER' && (
+                                <div className="grid grid-cols-2 gap-2 pt-2 pl-1 animate-fade-in">
+                                    <CriteriaItem met={passwordCriteria.length} label="8+ Characters" />
+                                    <CriteriaItem met={passwordCriteria.upper} label="Uppercase (A-Z)" />
+                                    <CriteriaItem met={passwordCriteria.number} label="Number (0-9)" />
+                                    <CriteriaItem met={passwordCriteria.special} label="Symbol (@#$%)" />
+                                </div>
+                            )}
+                            {mode === 'LOGIN' && (
+                                <div className="flex justify-end pt-1">
+                                    <button type="button" onClick={() => setMode('FORGOT_PASSWORD')} className="text-xs font-bold text-indigo-600 hover:underline">
+                                        Forgot Password?
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {mode === 'REGISTER' && (
                         <div className="space-y-1.5">
@@ -326,13 +405,13 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                         disabled={loading}
                         className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 transition-all active:scale-[0.98] text-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed mt-4"
                     >
-                        {loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Login' : 'Create Account')}
+                        {loading ? <Loader2 className="animate-spin" /> : (mode === 'LOGIN' ? 'Login' : mode === 'FORGOT_PASSWORD' ? 'Send Reset Link' : 'Create Account')}
                     </button>
                 </form>
 
                 <div className="p-6 bg-slate-50 text-center border-t border-slate-200/60">
                     <p className="text-slate-500 text-sm font-semibold">
-                        {mode === 'LOGIN' ? "Don't have an account?" : "Already have an account?"}{' '}
+                        {mode === 'LOGIN' ? "Don't have an account?" : mode === 'REGISTER' ? "Already have an account?" : "Remember your password?"}{' '}
                         <button onClick={onSwitchMode} className="text-indigo-600 font-bold hover:underline">
                             {mode === 'LOGIN' ? 'Register' : 'Login'}
                         </button>

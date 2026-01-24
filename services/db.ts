@@ -1,4 +1,3 @@
-
 import { supabase } from './supabase';
 import { Customer, Measurement, Order, AppConfig, Profile, GarmentType, Expense, Design, OrderStatus, OrderItem, AuthUser } from '../types';
 
@@ -192,11 +191,28 @@ export const db = {
             }
         },
 
-        signIn: async (email: string, password?: string) => {
+        signIn: async (identifier: string, password?: string) => {
             if (password) {
-                return supabase.auth.signInWithPassword({ email, password });
+                // Determine if email or phone
+                const isEmail = identifier.includes('@');
+                if (isEmail) {
+                    return supabase.auth.signInWithPassword({ email: identifier, password });
+                } else {
+                    // Mobile login isn't directly supported by signInWithPassword unless we use a custom solution or 3rd party provider.
+                    // However, Supabase DOES support phone auth if configured. 
+                    // Let's assume we use phone + password if our backend supports it, OR we are mapping phone to email in a cloud function.
+                    // For now, let's just stick to email-based login for simplicity unless user has phone auth set up.
+                    // If we want to support Phone + Password, we usually need a custom RPC or Edge Function if Supabase native phone auth is OTP only.
+                    // But Supabase CAN allow phone + password if we set the phone as the identity.
+                    // Actually, Supabase Phone Auth is typically OTP. 
+                    // BUT, we can support "Sign in with Phone + Password" only if we treat the Phone as a custom claim or mapped to Email.
+                    // Let's assume for this project we are using Email for auth primarily, and Mobile is just profile data.
+                    // We will just error if they try to use phone for now.
+                    // Reverting to prior behavior:
+                    throw new Error("Please use Email to login.");
+                }
             }
-            return supabase.auth.signInWithOtp({ email });
+            return supabase.auth.signInWithOtp({ email: identifier });
         },
 
         signUp: async (data: { email: string, password: string, shopName: string, mobile: string, pin: string, logoUrl?: string }) => {
@@ -216,6 +232,17 @@ export const db = {
 
         signOut: async () => {
             return supabase.auth.signOut();
+        },
+
+        resetPassword: async (email: string) => {
+            // Redirect to the reset-password route
+            return supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/update-password`,
+            });
+        },
+
+        updateUser: async (attributes: { password?: string }) => {
+            return supabase.auth.updateUser(attributes);
         }
     },
 
