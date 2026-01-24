@@ -82,7 +82,7 @@ export const AuthFlow: React.FC<AuthFlowProps> = ({ mode }) => {
                     setLoading(false);
                     return;
                 }
-                const { error } = await db.auth.signUp({
+                const { data, error } = await db.auth.signUp({
                     email: formData.email,
                     password: formData.password,
                     shopName: formData.shopName || 'My Shop',
