@@ -237,7 +237,7 @@ export const db = {
         resetPassword: async (email: string) => {
             // Redirect to the reset-password route
             return supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/update-password`,
+                redirectTo: `${window.location.origin}/reset-password`,
             });
         },
 
