@@ -1,73 +1,96 @@
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>TailorMaster</title>
-    <!-- We keep Tailwind CDN for simplicity, though a build step is usually better. -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-      /* Global Theme Configuration */
-      :root {
-        --font-sans: 'Inter', system-ui, sans-serif;
-        --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
-        --font-gujarati: 'Noto Sans Gujarati', sans-serif;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>TailorMaster</title>
+  <link rel="icon" type="image/png" href="/logo.png" />
+  <!-- We keep Tailwind CDN for simplicity, though a build step is usually better. -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+Gujarati:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+  <style>
+    /* Global Theme Configuration */
+    :root {
+      --font-sans: 'Inter', system-ui, sans-serif;
+      --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-gujarati: 'Noto Sans Gujarati', sans-serif;
+    }
+
+    body {
+      background-color: #F8FAFC;
+      /* Slate 50 */
+      font-family: var(--font-sans);
+      color: #0F172A;
+      /* Slate 900 */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: var(--font-heading);
+    }
+
+    .font-gujarati {
+      font-family: var(--font-gujarati), var(--font-sans);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    /* Hide scrollbar utility */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Animations */
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
       }
 
-      body {
-        background-color: #F8FAFC; /* Slate 50 */
-        font-family: var(--font-sans);
-        color: #0F172A; /* Slate 900 */
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        -webkit-tap-highlight-color: transparent;
+      to {
+        opacity: 1;
+        transform: translateY(0);
       }
+    }
 
-      h1, h2, h3, h4, h5, h6 {
-        font-family: var(--font-heading);
-      }
-
-      .font-gujarati {
-        font-family: var(--font-gujarati), var(--font-sans);
-      }
-
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #CBD5E1;
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94A3B8;
-      }
-
-      /* Hide scrollbar utility */
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-
-      /* Animations */
-      @keyframes fade-in {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      .animate-fade-in {
-        animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      }
-    </style>
+    .animate-fade-in {
+      animation: fade-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+  </style>
   <script type="importmap">
 {
   "imports": {
@@ -83,10 +106,12 @@
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+  <link rel="stylesheet" href="/index.css">
 </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+
 </html>

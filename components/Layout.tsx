@@ -72,9 +72,7 @@ export const Layout: React.FC = () => {
           {config.logo ? (
             <img src={config.logo} alt="Logo" className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-slate-100" />
           ) : (
-            <div className="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-200 text-white">
-              <Scissors size={24} />
-            </div>
+            <img src="/logo.png" alt="TailorMaster" className="w-12 h-12 rounded-2xl object-cover shadow-sm border border-slate-100" />
           )}
           <div>
             <h1 className="text-lg font-bold text-slate-900 tracking-tight truncate leading-tight">{config.shopName || 'Tailor Master'}</h1>
@@ -132,9 +130,7 @@ export const Layout: React.FC = () => {
             {config.logo ? (
               <img src={config.logo} alt="Logo" className="w-9 h-9 rounded-xl object-cover shadow-sm border border-slate-100" />
             ) : (
-              <div className="bg-indigo-600 p-2 rounded-xl text-white shadow-md shadow-indigo-100">
-                <Scissors size={20} />
-              </div>
+              <img src="/logo.png" alt="TailorMaster" className="w-9 h-9 rounded-xl object-cover shadow-sm border border-slate-100" />
             )}
             <h1 className="text-lg font-bold text-slate-900 truncate">{config.shopName || 'Tailor Master'}</h1>
           </div>
